@@ -106,7 +106,7 @@ infixr 5 :&
 --- Note that it is an error to induce a context for 
 --- a node already contained in the graph.
 
-(:&) :: Context nl el -> Graph nl el -> Graph nl el
+(:&) :: Show nl => Context nl el -> Graph nl el -> Graph nl el
 (p,v,l,s) :& (Gr g) 
   | elemFM v g = error ("Node Exception, Node: "++show v++": "++show l)
   | otherwise  = Gr g3
@@ -205,11 +205,11 @@ empty :: Graph _ _
 empty = Gr (emptyFM (<))
 
 --- Create a 'Graph' from the list of 'LNode's and 'LEdge's.
-mkGraph   :: [LNode a] -> [LEdge b] -> Graph a b
+mkGraph   :: Show a => [LNode a] -> [LEdge b] -> Graph a b
 mkGraph vs es  = (insEdges es . insNodes vs) empty
 
 --- Build a 'Graph' from a list of 'Context's.
-buildGr ::  [Context a b] -> Graph a b
+buildGr ::  Show a => [Context a b] -> Graph a b
 buildGr = foldr (:&) empty
 
 --- Build a quasi-unlabeled 'Graph' from the list of 'Node's and 'Edge's.
@@ -222,11 +222,11 @@ mkUGraph vs es = mkGraph (labUNodes vs) (labUEdges es)
 
 
 --- Insert a 'LNode' into the 'Graph'.
-insNode ::  LNode a -> Graph a b -> Graph a b
+insNode ::  Show a => LNode a -> Graph a b -> Graph a b
 insNode (v,l) = (([],v,l,[]):&)
 
 --- Insert a 'LEdge' into the 'Graph'.
-insEdge ::  LEdge b -> Graph a b -> Graph a b
+insEdge ::  Show a => LEdge b -> Graph a b -> Graph a b
 insEdge (v,w,l) g = (pr,v,la,(l,w):su) :& g'
                     where (Just (pr,_,la,su),g') = match v g
 
@@ -235,17 +235,17 @@ delNode ::  Node -> Graph a b -> Graph a b
 delNode v = delNodes [v]
 
 --- Remove an 'Edge' from the 'Graph'.
-delEdge ::  Edge -> Graph a b -> Graph a b
+delEdge ::  Show a => Edge -> Graph a b -> Graph a b
 delEdge (v,w) g = case match v g of
                   (Nothing,_)        -> g
                   (Just (p,v',l,s),g') -> (p,v',l,filter ((/=w).snd) s) :& g'
 
 --- Insert multiple 'LNode's into the 'Graph'.
-insNodes   ::  [LNode a] -> Graph a b -> Graph a b
+insNodes   :: Show a => [LNode a] -> Graph a b -> Graph a b
 insNodes vs g = foldr insNode g vs
 
 --- Insert multiple 'LEdge's into the 'Graph'.
-insEdges ::  [LEdge b] -> Graph a b -> Graph a b
+insEdges :: Show a => [LEdge b] -> Graph a b -> Graph a b
 insEdges es g = foldr insEdge g es
 
 --- Remove multiple 'Node's from the 'Graph'.
@@ -254,7 +254,7 @@ delNodes []     g = g
 delNodes (v:vs) g = delNodes vs (snd (match v g))  
 
 --- Remove multiple 'Edge's from the 'Graph'.
-delEdges ::  [Edge]    -> Graph a b -> Graph a b
+delEdges :: Show a => [Edge]    -> Graph a b -> Graph a b
 delEdges es g = foldr delEdge g es
 
 
@@ -350,21 +350,21 @@ gelem v g = isJust (fst (match v g))
            
 
 --- graph equality
-equal :: Graph a b -> Graph a b -> Bool
+equal :: (Eq a, Eq b) => Graph a b -> Graph a b -> Bool
 equal g g' = slabNodes g == slabNodes g' && slabEdges g == slabEdges g'
 
 -- comparing nodes 
-nodeComp :: LNode b -> LNode b -> Ordering
+nodeComp :: Eq b => LNode b -> LNode b -> Ordering
 nodeComp n n' | n == n'      = EQ
               | fst n<fst n' = LT
               | otherwise    = GT
 
 -- sort contained nodes 
-slabNodes :: Graph a _ -> [LNode a]
+slabNodes :: Eq a => Graph a _ -> [LNode a]
 slabNodes = sortBy nodeComp . labNodes
 
 -- comparing edges
-edgeComp :: LEdge b -> LEdge b -> Ordering
+edgeComp :: Eq b => LEdge b -> LEdge b -> Ordering
 edgeComp e e' | e == e'              = EQ
               | v<x || (v==x && w<y) = LT
               | otherwise            = GT
@@ -374,7 +374,7 @@ edgeComp e e' | e == e'              = EQ
     (x,y,_) = e'
 
 -- sort contained edges
-slabEdges :: Graph _ b -> [LEdge b]
+slabEdges :: Eq b => Graph _ b -> [LEdge b]
 slabEdges = sortBy edgeComp . labEdges
 
 -------------------------------------------
@@ -484,15 +484,15 @@ ufold f u g | isEmpty g = u
             where (c,g') = matchAny g
 
 --- Map a function over the graph.
-gmap :: (Context a b -> Context c d) -> Graph a b -> Graph c d
+gmap :: Show c => (Context a b -> Context c d) -> Graph a b -> Graph c d
 gmap f = ufold (\c->((f c):&)) empty
 
 --- Map a function over the 'Node' labels in a graph.
-nmap ::  (a -> c) -> Graph a b -> Graph c b
+nmap ::  Show c => (a -> c) -> Graph a b -> Graph c b
 nmap f = gmap (\(p,v,l,s)->(p,v,f l,s))
 
 --- Map a function over the 'Edge' labels in a graph.
-emap ::  (b -> c) -> Graph a b -> Graph a c
+emap ::  Show a => (b -> c) -> Graph a b -> Graph a c
 emap f = gmap (\(p,v,l,s)->(map1 f p,v,l,map1 f s))
          where map1 g = map (\(l,v)->(g l,v))
 
@@ -507,7 +507,7 @@ labUNodes = map (\v->(v,()))
 ----------------------------------------------------------------------
 
 --- Represent Graph as String
-showGraph :: Graph _ _ -> String
+showGraph :: (Show a, Show b) => Graph a b -> String
 showGraph (Gr g) = unlines (map showNode (fmToList g))
 
 --  
