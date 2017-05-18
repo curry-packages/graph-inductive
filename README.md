@@ -1,5 +1,5 @@
-graphin: Libraries for dealing with inductive graphs
-====================================================
+graph-inductive: Libraries for dealing with inductive graphs
+============================================================
 
 This package contains a library for inductive graphs, i.e.,
 where graphs are composed and decomposed in an inductive way.

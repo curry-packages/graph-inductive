@@ -1,5 +1,5 @@
 {
-    "name": "graphind",
+    "name": "graph-inductive",
     "version": "1.0.0",
     "author": "Bernd Brassel <bbr@informatik.uni-kiel.de>",
     "maintainer": "Michael Hanus <mh@informatik.uni-kiel.de>",
@@ -14,7 +14,7 @@
     "license": "BSD-3-Clause",
     "licenseFile": "LICENSE",
     "source": {
-        "git": "https://git.ps.informatik.uni-kiel.de/curry-packages/graphind.git",
+        "git": "https://git.ps.informatik.uni-kiel.de/curry-packages/graph-inductive.git",
         "tag": "$version"
     }
 }
