@@ -1,0 +1,20 @@
+{
+    "name": "graphind",
+    "version": "1.0.0",
+    "author": "Bernd Brassel <bbr@informatik.uni-kiel.de>",
+    "maintainer": "Michael Hanus <mh@informatik.uni-kiel.de>",
+    "synopsis": "Library for inductive graphs",
+    "category": [ "Data" ],
+    "dependencies": { },
+    "exportedModules": [ "GraphInductive" ],
+    "compilerCompatibility": {
+        "pakcs": ">= 1.14.0, < 2.0.0",
+        "kics2": ">= 0.5.0,  < 2.0.0"
+    },
+    "license": "BSD-3-Clause",
+    "licenseFile": "LICENSE",
+    "source": {
+        "git": "https://git.ps.informatik.uni-kiel.de/curry-packages/graphind.git",
+        "tag": "$version"
+    }
+}
