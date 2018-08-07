@@ -1,6 +1,6 @@
 {
     "name": "graph-inductive",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "author": "Bernd Brassel <bbr@informatik.uni-kiel.de>",
     "maintainer": "Michael Hanus <mh@informatik.uni-kiel.de>",
     "synopsis": "Library for inductive graphs",
