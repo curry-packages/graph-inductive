@@ -5,7 +5,10 @@
     "maintainer": "Michael Hanus <mh@informatik.uni-kiel.de>",
     "synopsis": "Library for inductive graphs",
     "category": [ "Data" ],
-    "dependencies": { },
+    "dependencies": {
+        "base" : ">= 2.0.0"
+        
+    },
     "exportedModules": [ "GraphInductive" ],
     "compilerCompatibility": {
         "pakcs": ">= 2.0.0",
