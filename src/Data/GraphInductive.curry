@@ -19,12 +19,11 @@
 --- For examples of how to use this library, cf. the module `GraphAlgorithms`.
 ---
 --- @author Bernd Brassel
---- @version May 2005
---- @category algorithm
+--- @version Janaury 2019
 ------------------------------------------------------------------------------
 
 
-module GraphInductive (
+module Data.GraphInductive (
   empty,
   mkGraph,
   buildGr,
@@ -83,9 +82,10 @@ module GraphInductive (
   Path,LPath,UPath,
   UGr) where
 
-import FiniteMap
-import Sort (mergeSortBy)
 import Maybe 
+import Sort (mergeSortBy)
+
+import Data.FiniteMap
 
 infixr 5 .:
 
