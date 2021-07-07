@@ -5,21 +5,21 @@
 ---
 --- The key idea is as follows: 
 ---
---- A graph is either <i>empty</i> or it consists of <i>node context</i> 
---- and a <i>graph g'</i> which 
---- are put together by a constructor `(:&amp;)`.
+--- A graph is either _empty_ or it consists of _node context_
+--- and a _graph_ `g'` which 
+--- are put together by a constructor `(:&)`.
 ---
---- This constructor `(:&amp;)`, however, is not a constructor in 
+--- This constructor `(:&)`, however, is not a constructor in 
 --- the sense of abstract 
 --- data type, but more basically a defined constructing funtion. 
 ---
---- A <i>context</i> is a node together withe the edges to and from this node
---- into the nodes in the graph g'.
+--- A _context_ is a node together withe the edges to and from this node
+--- into the nodes in the graph `g'`.
 --- 
 --- For examples of how to use this library, cf. the module `GraphAlgorithms`.
 ---
 --- @author Bernd Brassel
---- @version Janaury 2019
+--- @version July 2021
 ------------------------------------------------------------------------------
 
 
@@ -82,10 +82,10 @@ module Data.GraphInductive (
   Path,LPath,UPath,
   UGr) where
 
-import Maybe 
-import Sort (mergeSortBy)
+import Data.Maybe 
+import Data.List  ( sortBy )
 
-import Data.FiniteMap
+import Data.Map
 
 infixr 5 .:
 
@@ -108,9 +108,9 @@ infixr 5 :&
 
 (:&) :: Show nl => Context nl el -> Graph nl el -> Graph nl el
 (p,v,l,s) :& (Gr g) 
-  | elemFM v g = error ("Node Exception, Node: "++show v++": "++show l)
+  | member v g = error ("Node Exception, Node: "++show v++": "++show l)
   | otherwise  = Gr g3
-      where g1 = addToFM g v (p,l,s)
+      where g1 = insert v (p,l,s) g
             g2 = updAdj g1 p (addSucc v)
             g3 = updAdj g2 s (addPred v)
 
@@ -175,8 +175,8 @@ type UContext     = ([Node],Node,[Node])
 
 matchAny  :: Graph a b -> GDecomp a b
 matchAny (Gr g)
-  | isEmptyFM g = error "Match Exception, Empty Graph"
-  | otherwise = case head (fmToListPreOrder g) of
+  | Data.Map.null g = error "Match Exception, Empty Graph"
+  | otherwise = case head (toPreOrderList g) of
                   (v,_) -> case match v (Gr g) of
                             (Just c,g') -> (c,g') 
 
@@ -202,7 +202,7 @@ type UDecomp g    = (Maybe UContext,g)
 --- An empty 'Graph'.
 -- internal representation by finite maps
 empty :: Graph _ _
-empty = Gr (emptyFM (<))
+empty = Gr Data.Map.empty
 
 --- Create a 'Graph' from the list of 'LNode's and 'LEdge's.
 mkGraph   :: Show a => [LNode a] -> [LEdge b] -> Graph a b
@@ -264,7 +264,7 @@ delEdges es g = foldr delEdge g es
 
 --- test if the given 'Graph' is empty.
 isEmpty :: Graph _ _ -> Bool
-isEmpty (Gr g)  = isEmptyFM g
+isEmpty (Gr g)  = Data.Map.null g
 
 --- match is the complement side of (:&amp;), decomposing a 'Graph' into the 
 --- 'MContext' found for the given node and the remaining 'Graph'.
@@ -278,18 +278,17 @@ match v (Gr g) =
                  g1   = updAdj g' s' (clearPred v)
                  g2   = updAdj g1 p' (clearSucc v)
               in (Just (p',v,l,s),Gr g2))
-   (splitFM g v)
-
-
+   (maybe Nothing (\x -> Just (delete v g, (v,x))) (Data.Map.lookup v g))
 
 --- The number of 'Node's in a 'Graph'.
 noNodes   :: Graph _ _ -> Int
-noNodes   (Gr g) = sizeFM g
+noNodes   (Gr g) = size g
 
 --- The minimum and maximum 'Node' in a 'Graph'.
 nodeRange :: Graph _ _ -> (Node,Node)
-nodeRange (Gr g) | isEmptyFM g = (0,0)
-                 | otherwise = (ix (minFM g),ix (maxFM g)) where ix = fst . fromJust
+nodeRange (Gr g)
+  | Data.Map.null g = (0,0)
+  | otherwise = (ix (lookupMin g),ix (lookupMax g)) where ix = fst . fromJust
 
 
 --- Find the context for the given 'Node'.  In contrast to "match",
@@ -302,7 +301,7 @@ context g v = case match v g of
 
 --- Find the label for a 'Node'.
 lab ::  Graph a _ -> Node -> Maybe a
-lab g v = fst (match v g) >>- Just . lab' 
+lab g v = fst (match v g) >>= Just . lab' 
 
 --- Find the neighbors for a 'Node'.
 neighbors ::  Graph _ _ -> Node -> [Node] 
@@ -361,7 +360,7 @@ nodeComp n n' | n == n'      = EQ
 
 -- sort contained nodes 
 slabNodes :: Eq a => Graph a _ -> [LNode a]
-slabNodes = sortBy nodeComp . labNodes
+slabNodes = gsortBy nodeComp . labNodes
 
 -- comparing edges
 edgeComp :: Eq b => LEdge b -> LEdge b -> Ordering
@@ -375,7 +374,7 @@ edgeComp e e' | e == e'              = EQ
 
 -- sort contained edges
 slabEdges :: Eq b => Graph _ b -> [LEdge b]
-slabEdges = sortBy edgeComp . labEdges
+slabEdges = gsortBy edgeComp . labEdges
 
 -------------------------------------------
 -- retrieving information from contexts
@@ -438,11 +437,12 @@ deg' (p,_,_,s) = length p+length s
 ------------------------------------
 
 --- A list of all 'LNode's in the 'Graph'.
-labNodes (Gr g) = map (\(v,(_,l,_))->(v,l)) (fmToList g)
+labNodes :: Graph a b -> [(Int, a)]
+labNodes (Gr g) = map (\(v,(_,l,_))->(v,l)) (toList g)
 
 --- A list of all 'LEdge's in the 'Graph'.
 labEdges  :: Graph _ b -> [LEdge b]
-labEdges  (Gr g) = concatMap (\(v,(_,_,s))->map (\(l,w)->(v,w,l)) s) (fmToList g)
+labEdges  (Gr g) = concatMap (\(v,(_,_,s))->map (\(l,w)->(v,w,l)) s) (toList g)
 
 --- List all 'Node's in the 'Graph'.
 nodes ::  Graph _ _ -> [Node]
@@ -468,7 +468,7 @@ type LPath a = [LNode a]
 --- Quasi-unlabeled path
 type UPath   = [UNode]          
 
-type GraphRep a b = FM Node (Context' a b)
+type GraphRep a b = Map Node (Context' a b)
 
 --- a graph without any labels
 type UGr = Graph () ()
@@ -497,9 +497,11 @@ emap f = gmap (\(p,v,l,s)->(map1 f p,v,l,map1 f s))
          where map1 g = map (\(l,v)->(g l,v))
 
 --- add label () to list of edges (node,node)
+labUEdges :: [(a, b)] -> [(a, b, ())]
 labUEdges = map (\(v,w)->(v,w,()))
 
 --- add label () to list of nodes
+labUNodes :: [a] -> [(a, ())]
 labUNodes = map (\v->(v,()))
  
 ----------------------------------------------------------------------
@@ -508,10 +510,9 @@ labUNodes = map (\v->(v,()))
 
 --- Represent Graph as String
 showGraph :: (Show a, Show b) => Graph a b -> String
-showGraph (Gr g) = unlines (map showNode (fmToList g))
-
---  
-showNode (v,(_,l',s)) = show v ++ ":" ++ show l' ++ "->"++ show s 
+showGraph (Gr g) = unlines (map showNode (toList g))
+ where
+  showNode (v,(_,l',s)) = show v ++ ":" ++ show l' ++ "->"++ show s 
 
 ----------------------------------------------------------------------
 -- UTILITIES
@@ -526,11 +527,14 @@ showNode (v,(_,l',s)) = show v ++ ":" ++ show l' ++ "->"++ show s
 -- (.:) = (.) (.) (.)
 (.:) = (.) . (.)
 
+fst4 :: (a, b, c, d) -> a
 fst4 (x,_,_,_) = x
 {- not used
 snd4 (_,x,_,_) = x
 thd4 (_,_,x,_) = x
 -}
+
+fth4 :: (a, b, c, d) -> d
 fth4 (_,_,_,x) = x
 
 {- not used
@@ -539,6 +543,7 @@ snd3 (_,x,_) = x
 thd3 (_,_,x) = x
 -}
 
+flip2 :: (a, b) -> (b, a)
 flip2 (x,y) = (y,x)
 
 -- projecting on context elements
@@ -564,13 +569,15 @@ addPred v l (p,l',s) = ((l,v):p,l',s)
 clearSucc v _ (p,l,s) = (p,l,filter ((/=v).snd) s)
 clearPred v _ (p,l,s) = (filter ((/=v).snd) p,l,s)
 
-updAdj :: GraphRep a b -> Adj b -> (b -> Context' a b -> Context' a b) -> GraphRep a b
-updAdj g []         _              = g
+updAdj :: GraphRep a b -> Adj b -> (b -> Context' a b -> Context' a b)
+       -> GraphRep a b
+updAdj g []         _  = g
 updAdj g ((l,v):vs) f 
-   | elemFM v g = updAdj (updFM g v (f l)) vs f
-   | otherwise  = error ("Edge Exception, Node: "++show v)
+  | member v g = updAdj (adjust (f l) v g) vs f
+  | otherwise  = error ("Edge Exception, Node: " ++ show v)
 
-sortBy p = mergeSortBy (\x y -> let pxy = p x y in pxy==EQ||pxy==LT)
+gsortBy :: (a -> a -> Ordering) -> [a] -> [a]
+gsortBy p = sortBy (\x y -> let pxy = p x y in pxy == EQ || pxy == LT)
 
 
 
